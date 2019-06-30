@@ -1,7 +1,7 @@
 #include "Utils.h"
 
 #define CONSOLE_COLOR_GREEN		0xA
-#define CONSOLE_COLOR_YELLOW	0xE
+#define CONSOLE_COLOR_YELLOW		0xE
 #define CONSOLE_COLOR_RED		0xC
 #define CONSOLE_COLOR_WHITE		0x7
 
@@ -91,22 +91,27 @@ namespace Utils
 		};
 	};
 
-	DWORD Align(DWORD dwAddress, DWORD dwAlignment)
+	DWORD AlignUp(DWORD dwAddress, DWORD dwAlignment)
 	{
+		if (!(dwAddress % dwAlignment)) return dwAddress;
 		return dwAddress + dwAlignment - dwAddress % dwAlignment;
 	};
 	BOOL RvaToOffset(PIMAGE_NT_HEADERS lpNtHeader, DWORD dwRva, LPDWORD lpOffset)
 	{
-		*lpOffset = 0;
+		DWORD dwOffset = 0;
 		PIMAGE_SECTION_HEADER lpHeaderSection = IMAGE_FIRST_SECTION(lpNtHeader);
 		for (DWORD dwSecIndex = 0; dwSecIndex < lpNtHeader->FileHeader.NumberOfSections; dwSecIndex++, lpHeaderSection++) {
 			if (dwRva >= lpHeaderSection->VirtualAddress &&
 				dwRva < lpHeaderSection->VirtualAddress + lpHeaderSection->Misc.VirtualSize) {
-				*lpOffset = lpHeaderSection->PointerToRawData + dwRva - lpHeaderSection->VirtualAddress;
+				dwOffset = lpHeaderSection->PointerToRawData + dwRva - lpHeaderSection->VirtualAddress;
 				break;
 			}
 		};
-		if (*lpOffset) return TRUE;
+		if (dwOffset)
+		{
+			*lpOffset = dwOffset;
+			return TRUE;
+		};
 		return FALSE;
 	};
 	BOOL IsValidReadPtr(LPVOID lpMem, DWORD dwSize)
@@ -193,6 +198,8 @@ namespace Utils
 			lpSource,
 			dwSourceSize
 		);
+
+		return TRUE;
 	};
 };
 
@@ -271,14 +278,14 @@ VOID ReportApiError(LPCSTR _Api, LPCSTR _Format, va_list _ArgList)
 {
 	fprintf(stderr, "[-] Error occured at running the api %s, ", _Api);
 	PutToStream(stderr, _Format, _ArgList);
-	fprintf(stderr, ", Last error code/msg is %s, ", GetLastErrorFormat());
+	fprintf(stderr, ", Last error code/msg is %s", GetLastErrorFormat());
 	fputc('\n', stderr);
 };
 VOID ReportApiNtStatus(LPCSTR _Api, NTSTATUS ntCode, LPCSTR _Format, va_list _ArgList)
 {
 	fprintf(stderr, "[-] Error occured at running the api %s, ", _Api);
 	PutToStream(stderr, _Format, _ArgList);
-	fprintf(stderr, ", Last ntstatus code/msg is %s, ", GetNtStatusFormat(ntCode));
+	fprintf(stderr, ", Last ntstatus code/msg is %s", GetNtStatusFormat(ntCode));
 	fputc('\n', stderr);
 };
 VOID ReportBadPE(LPCSTR _PE, LPCSTR _Format, va_list _ArgList)
@@ -314,6 +321,10 @@ LPCSTR GetLastErrorFormat(ULONG dwErrorCode)
 	))
 	{
 		sprintf_s(ErrorMsg, "0x%lx", dwErrorCode);
+	};
+	if (ErrorMsg[strlen(ErrorMsg) - 1] == '\n')
+	{
+		ErrorMsg[strlen(ErrorMsg) - 1] = 0;
 	};
 	return ErrorMsg;
 };
