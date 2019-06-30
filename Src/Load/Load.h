@@ -1,18 +1,11 @@
 #include "../Utils/Utils.h"
 
-typedef struct _RAW_FILE_INFO {
-	HANDLE hFile;
-	CHAR Path[MAX_PATH];
-	DWORD dwSize;
-	LPVOID lpDataBuffer;
-} RAW_FILE_INFO, * PRAW_FILE_INFO;
-
 namespace Load
 {
 	namespace File
 	{
-		VOID Load(LPCSTR szFilePath, PRAW_FILE_INFO lpFileInfo, DWORD dwBufferLength);
-		VOID UnLoad(PRAW_FILE_INFO lpFileInfo, DWORD dwBufferLength);
+		BOOL Load(LPCSTR szFilePath, PRAW_FILE_INFO lpFileInfo, DWORD dwBufferLength);
+		BOOL UnLoad(PRAW_FILE_INFO lpFileInfo, DWORD dwBufferLength);
 	};
 
 	namespace PE
@@ -24,6 +17,9 @@ namespace Load
 		BOOL CheckRelocation(PRAW_FILE_INFO lpFileInfo, PBOOL IsRelocatable);
 		BOOL Map(PRAW_FILE_INFO lpFileInfo, LPVOID* lplpMappedPE);
 		BOOL UnMap(LPVOID lpMappedPE, DWORD dwImageSize, PRAW_FILE_INFO lpUnMappedFileInfo);
+		BOOL IsDirExists(PIMAGE_NT_HEADERS lpNtHeader, DWORD dwDirectory, PBOOL IsExists);
+		BOOL GetDirectoryInfo(PIMAGE_NT_HEADERS lpNtHeader, DWORD dwDirectory, PDWORD lpDirEntry, PDWORD lpDirSize, BOOL IsMapped);
+		LPCSTR GetDirTableName(DWORD dwDirectory);
 	};
 
 	namespace Process
