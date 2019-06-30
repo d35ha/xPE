@@ -202,7 +202,7 @@ namespace Load
 				&lpNtHeader
 			))
 			{
-				DWORD dwRawSize = Utils::Align(
+				DWORD dwRawSize = Utils::AlignUp(
 					lpNtHeader->OptionalHeader.SizeOfHeaders,
 					lpNtHeader->OptionalHeader.FileAlignment
 				);
@@ -210,7 +210,7 @@ namespace Load
 				PIMAGE_SECTION_HEADER lpSectionHeaderArray = IMAGE_FIRST_SECTION(lpNtHeader);
 				for (int SecIndex = 0; SecIndex < lpNtHeader->FileHeader.NumberOfSections; SecIndex++)
 				{
-					dwRawSize += Utils::Align(
+					dwRawSize += Utils::AlignUp(
 						lpSectionHeaderArray[SecIndex].SizeOfRawData,
 						lpNtHeader->OptionalHeader.FileAlignment
 					);
@@ -248,7 +248,7 @@ namespace Load
 							(LPVOID)((uintptr_t)lpImage + lpSectionHeaderArray[SecIndex].PointerToRawData),
 							dwRawSize - lpSectionHeaderArray[SecIndex].PointerToRawData,
 							(LPVOID)((uintptr_t)lpFileInfo->lpDataBuffer + lpSectionHeaderArray[SecIndex].VirtualAddress),
-							Utils::Align(
+							Utils::AlignUp(
 								lpSectionHeaderArray[SecIndex].Misc.VirtualSize,
 								lpNtHeader->OptionalHeader.SectionAlignment
 							)
@@ -267,6 +267,84 @@ namespace Load
 			};
 			Utils::Printf::Fail("Cannot unmap this PE");
 			return FALSE;
+		};
+		BOOL IsDirExists(PIMAGE_NT_HEADERS lpNtHeader, DWORD dwDirectory, PBOOL IsExists)
+		{
+			if (dwDirectory > IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR || dwDirectory < IMAGE_DIRECTORY_ENTRY_EXPORT)
+			{
+				Utils::Printf::Fail("Invalid directory table of %d", dwDirectory);
+				return FALSE;
+			};
+			*IsExists = GET_DIRECTORY_ENTRY(lpNtHeader, dwDirectory) && GET_DIRECTORY_SIZE(lpNtHeader, dwDirectory);
+			return TRUE;
+		};
+		BOOL GetDirectoryInfo(PIMAGE_NT_HEADERS lpNtHeader, DWORD dwDirectory, PDWORD lpDirEntry, PDWORD lpDirSize, BOOL IsMapped)
+		{
+			BOOL IsExists = FALSE;
+			if (IsDirExists(lpNtHeader, dwDirectory, &IsExists))
+			{
+				if (!IsExists)
+				{
+					Utils::Printf::Fail("Directory table %s doesn't exist in the PE", GetDirTableName(dwDirectory));
+					return FALSE;
+				};
+
+				DWORD dwBaseOffset = GET_DIRECTORY_ENTRY(lpNtHeader, dwDirectory);
+				DWORD dwTableSize = GET_DIRECTORY_SIZE(lpNtHeader, dwDirectory);
+
+				if (!IsMapped && dwDirectory != IMAGE_DIRECTORY_ENTRY_SECURITY)
+				{
+					if (!Utils::RvaToOffset(lpNtHeader, dwBaseOffset, &dwBaseOffset))
+					{
+						Utils::Printf::Fail("Invalid directory table %s entry of %d", GetDirTableName(dwDirectory), dwBaseOffset);
+						return FALSE;
+					};
+				};
+
+				*lpDirEntry = dwBaseOffset;
+				*lpDirSize = dwTableSize;
+				return TRUE;
+			};
+			Utils::Printf::Fail("Cannot retrieve directory information");
+			return FALSE;
+		};
+		LPCSTR GetDirTableName(DWORD dwDirectory)
+		{
+			switch (dwDirectory)
+			{
+			case IMAGE_DIRECTORY_ENTRY_EXPORT:
+				return "IMAGE_DIRECTORY_ENTRY_EXPORT";
+			case IMAGE_DIRECTORY_ENTRY_IMPORT:
+				return "IMAGE_DIRECTORY_ENTRY_IMPORT";
+			case IMAGE_DIRECTORY_ENTRY_RESOURCE:
+				return "IMAGE_DIRECTORY_ENTRY_RESOURCE";
+			case IMAGE_DIRECTORY_ENTRY_EXCEPTION:
+				return "IMAGE_DIRECTORY_ENTRY_EXCEPTION";
+			case IMAGE_DIRECTORY_ENTRY_SECURITY:
+				return "IMAGE_DIRECTORY_ENTRY_SECURITY";
+			case IMAGE_DIRECTORY_ENTRY_BASERELOC:
+				return "IMAGE_DIRECTORY_ENTRY_BASERELOC";
+			case IMAGE_DIRECTORY_ENTRY_DEBUG:
+				return "IMAGE_DIRECTORY_ENTRY_DEBUG";
+			case IMAGE_DIRECTORY_ENTRY_ARCHITECTURE:
+				return "IMAGE_DIRECTORY_ENTRY_ARCHITECTURE";
+			case IMAGE_DIRECTORY_ENTRY_GLOBALPTR:
+				return "IMAGE_DIRECTORY_ENTRY_GLOBALPTR";
+			case IMAGE_DIRECTORY_ENTRY_TLS:
+				return "IMAGE_DIRECTORY_ENTRY_TLS";
+			case IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG:
+				return "IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG";
+			case IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT:
+				return "IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT";
+			case IMAGE_DIRECTORY_ENTRY_IAT:
+				return "IMAGE_DIRECTORY_ENTRY_IAT";
+			case IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT:
+				return "IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT";
+			case IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR:
+				return "IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR";
+			default:
+				return "[UNDEFINED_TABLE]";
+			}
 		};
 	};
 };
