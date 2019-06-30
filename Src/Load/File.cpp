@@ -7,11 +7,11 @@ namespace Load
 {
 	namespace File
 	{
-		VOID Load(LPCSTR szFilePath, PRAW_FILE_INFO lpFileInfo, DWORD dwBufferLength)
+		BOOL Load(LPCSTR szFilePath, PRAW_FILE_INFO lpFileInfo, DWORD dwBufferLength)
 		{
 			ResetMemory(lpFileInfo, dwBufferLength);
 
-			if (dwBufferLength < sizeof(lpFileInfo->hFile)) return;
+			if (dwBufferLength < sizeof(lpFileInfo->hFile)) return FALSE;
 			dwBufferLength -= sizeof(lpFileInfo->hFile);
 			if (!(lpFileInfo->hFile = CreateFileA(
 				szFilePath,
@@ -24,10 +24,10 @@ namespace Load
 			)) || INVALID_HANDLE_VALUE == lpFileInfo->hFile)
 			{
 				Utils::Reportf::ApiError("CreateFileA", "Error while opening the file %s", szFilePath);
-				return;
+				return FALSE;
 			};
 
-			if (dwBufferLength < sizeof(lpFileInfo->Path)) return;
+			if (dwBufferLength < sizeof(lpFileInfo->Path)) return FALSE;
 			dwBufferLength -= sizeof(lpFileInfo->Path);
 			strcpy_s(lpFileInfo->Path, sizeof(lpFileInfo->Path), szFilePath);
 
@@ -40,9 +40,9 @@ namespace Load
 				Utils::Reportf::ApiError("GetFileSizeEx", "Error while getting the size of the file %s", szFilePath);
 				CloseFileHandle(lpFileInfo->hFile);
 				ResetMemory(lpFileInfo, dwBufferLength);
-				return;
+				return FALSE;
 			};
-			if (dwBufferLength < sizeof(lpFileInfo->dwSize)) return;
+			if (dwBufferLength < sizeof(lpFileInfo->dwSize)) return FALSE;
 			dwBufferLength -= sizeof(lpFileInfo->dwSize);
 			lpFileInfo->dwSize = (DWORD)u32FileSize.QuadPart;
 
@@ -57,7 +57,7 @@ namespace Load
 				Utils::Reportf::ApiError("VirtualAlloc", "Error while allocating %d bytes of memory for the file %s", lpFileInfo->dwSize, szFilePath);
 				CloseFileHandle(lpFileInfo->hFile);
 				ResetMemory(lpFileInfo, dwBufferLength);
-				return;
+				return FALSE;
 			};
 
 			DWORD dwReadBytes = 0;
@@ -72,13 +72,15 @@ namespace Load
 				Utils::Reportf::ApiError("ReadFile", "Error while reading the file %s", szFilePath);
 				CloseFileHandle(lpFileInfo->hFile);
 				ResetMemory(lpFileInfo, dwBufferLength);
-				return;
+				return FALSE;
 			};
-			if (dwBufferLength < sizeof(lpFileInfo->lpDataBuffer)) return;
+			if (dwBufferLength < sizeof(lpFileInfo->lpDataBuffer)) return FALSE;
 			dwBufferLength -= sizeof(lpFileInfo->lpDataBuffer);
 			lpFileInfo->lpDataBuffer = bFileContent;
+
+			return TRUE;
 		};
-		VOID UnLoad(PRAW_FILE_INFO lpFileInfo, DWORD dwBufferLength)
+		BOOL UnLoad(PRAW_FILE_INFO lpFileInfo, DWORD dwBufferLength)
 		{
 			if (!VirtualFree(
 				lpFileInfo->lpDataBuffer,
@@ -94,6 +96,7 @@ namespace Load
 			};
 			CloseFileHandle(lpFileInfo->hFile);
 			ResetMemory(lpFileInfo, dwBufferLength);
+			return TRUE;
 		};
 	}
 };
