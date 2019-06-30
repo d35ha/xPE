@@ -14,6 +14,13 @@
 #define GET_DIRECTORY_ENTRY(lpNtHeader, dwEntry) lpNtHeader->OptionalHeader.DataDirectory[dwEntry].VirtualAddress
 #define GET_DIRECTORY_SIZE(lpNtHeader, dwEntry) lpNtHeader->OptionalHeader.DataDirectory[dwEntry].Size
 
+typedef struct _RAW_FILE_INFO {
+	HANDLE hFile;
+	CHAR Path[MAX_PATH];
+	DWORD dwSize;
+	LPVOID lpDataBuffer;
+} RAW_FILE_INFO, * PRAW_FILE_INFO;
+
 enum
 {
 	x32,
@@ -43,7 +50,7 @@ namespace Utils
 		VOID ApiNtStatus(LPCSTR _Api, NTSTATUS ntCode, LPCSTR _Format, ...);
 	};
 
-	DWORD Align(DWORD dwAddress, DWORD dwAlignment);
+	DWORD AlignUp(DWORD dwAddress, DWORD dwAlignment);
 	BOOL RvaToOffset(PIMAGE_NT_HEADERS lpNtHeader, DWORD dwRVA, LPDWORD lpOffset);
 	BOOL IsValidReadPtr(LPVOID lpMem, DWORD dwSize);
 	BOOL IsValidWritePtr(LPVOID lpMem, DWORD dwSize);
