@@ -1,6 +1,6 @@
 #include "Load.h"
 
-namespace Utils
+namespace Load
 {
 	namespace Process
 	{
