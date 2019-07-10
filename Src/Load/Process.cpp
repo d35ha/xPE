@@ -121,14 +121,14 @@ namespace Load
 				&stReadBytes
 			) || stReadBytes != sizeof(bPeb))
 			{
-				Utils::Reportf::ApiNtStatus("ReadProcessMemory", ntProcessStatus,
+				Utils::Reportf::ApiError("ReadProcessMemory",
 					"Cannot read the PEB from the process with handle 0x%x", hProcess);
 				return FALSE;
 			};
 			PPEB lpPeb = (PPEB)bPeb;
 			
 			if (!Utils::SafeMemoryCopy(
-				(LPVOID)lpProcessBasicInfo,
+				(LPVOID)lpProcessPeb,
 				sizeof(PEB),
 				(LPVOID)lpPeb,
 				sizeof(PEB)
