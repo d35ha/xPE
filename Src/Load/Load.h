@@ -27,5 +27,6 @@ namespace Load
 		BOOL GetHandle(DWORD dwPid, PHANDLE lpHandle, DWORD dwDesiredAccess);
 		BOOL GetArch(HANDLE hProcess, PDWORD lpArch);
 		BOOL GetPEB(HANDLE hProcess, PPEB lpPeb);
+		BOOL GetModNtHeader(HANDLE hProcess, LPVOID lpModBase, LPVOID lpNtHeader);
 	};
 };
