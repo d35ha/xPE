@@ -135,5 +135,54 @@ namespace Load
 			)) return FALSE;
 			return TRUE;
 		};
+		BOOL GetModNtHeader(HANDLE hProcess, LPVOID lpModBase, LPVOID lpNtHeader)
+		{
+			if (!Utils::IsValidWritePtr(
+				lpNtHeader,
+				sizeof(IMAGE_NT_HEADERS)
+			)) return FALSE;
+
+			ZeroMemory(
+				(LPVOID)lpNtHeader,
+				sizeof(IMAGE_NT_HEADERS)
+			);
+
+			BYTE bDosHeader[sizeof(IMAGE_DOS_HEADER)] = { 0 };
+			SIZE_T stReadBytes = 0;
+			if (!ReadProcessMemory(
+				hProcess,
+				lpModBase,
+				bDosHeader,
+				sizeof(bDosHeader),
+				&stReadBytes
+			) || stReadBytes != sizeof(bDosHeader))
+			{
+				Utils::Reportf::ApiError("ReadProcessMemory", "Cannot read the dos header for this module");
+				return FALSE;
+			};
+			PIMAGE_DOS_HEADER lpDosHeader = (PIMAGE_DOS_HEADER)bDosHeader;
+
+			BYTE bNtHeader[sizeof(IMAGE_NT_HEADERS)] = { 0 };
+			if (!ReadProcessMemory(
+				hProcess,
+				(LPVOID)((uintptr_t)lpModBase + lpDosHeader->e_lfanew),
+				bNtHeader,
+				sizeof(bNtHeader),
+				&stReadBytes
+			) || stReadBytes != sizeof(bNtHeader))
+			{
+				Utils::Reportf::ApiError("ReadProcessMemory", "Cannot read the nt header for this module");
+				return FALSE;
+			};
+			PIMAGE_NT_HEADERS _lpNtHeader = (PIMAGE_NT_HEADERS)bNtHeader;
+
+			if (!Utils::SafeMemoryCopy(
+				(LPVOID)lpNtHeader,
+				sizeof(IMAGE_NT_HEADERS),
+				(LPVOID)_lpNtHeader,
+				sizeof(IMAGE_NT_HEADERS)
+			)) return FALSE;
+			return TRUE;
+		};
 	};
 };
