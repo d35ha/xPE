@@ -36,6 +36,8 @@ enum
 
 namespace Utils
 {
+	VOID InitColors();
+
 	namespace Printf
 	{
 		VOID Success(LPCSTR _Format, ...);
