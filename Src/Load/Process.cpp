@@ -82,7 +82,7 @@ namespace Load
 #endif
 			return TRUE;
 		};
-		BOOL GetPEB(HANDLE hProcess, PPEB lpProcessPeb)
+		BOOL GetPEB(HANDLE hProcess, PPEB lpProcessPeb, LPVOID* lpPebAddress)
 		{
 			if (!Utils::IsValidWritePtr(
 				lpProcessPeb,
@@ -110,6 +110,7 @@ namespace Load
 				return FALSE;
 			};
 			PPROCESS_BASIC_INFORMATION lpProcessBasicInfo = (PPROCESS_BASIC_INFORMATION)bProcessBasicInfo;
+			*lpPebAddress = lpProcessBasicInfo->PebBaseAddress;
 
 			BYTE bPeb[sizeof(PEB)] = { 0 };
 			SIZE_T stReadBytes = 0;
