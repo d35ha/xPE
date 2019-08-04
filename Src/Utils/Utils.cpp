@@ -3,7 +3,7 @@
 #define CONSOLE_COLOR_GREEN		0xA
 #define CONSOLE_COLOR_YELLOW		0xE
 #define CONSOLE_COLOR_RED		0xC
-#define CONSOLE_COLOR_WHITE		0x7
+static WORD wOldConsoleColor = 0x7;
 
 CHAR ErrorMsg[MAX_PATH] = { 0 };
 HANDLE StdoutConsoleHandle = NULL;
@@ -29,6 +29,27 @@ VOID PutToStream(FILE * _Stream, LPCSTR _Format, va_list _ArgList);
 
 namespace Utils
 {
+	VOID InitColors()
+	{
+		CONSOLE_SCREEN_BUFFER_INFO ConsoleScreenBuffInfo = { 0 };
+		GetStdoutConsoleHandle();
+		if (!StdoutConsoleHandle)
+		{
+			PrintError("Error happened at getting the console stdout handle");
+			return;
+		};
+
+		if (!GetConsoleScreenBufferInfo(
+			StdoutConsoleHandle,
+			&ConsoleScreenBuffInfo
+		))
+		{
+			PrintError("Error happened at getting the console old color");
+			return;
+		};
+		wOldConsoleColor = ConsoleScreenBuffInfo.wAttributes;
+	};
+
 	namespace Printf
 	{
 		VOID Success(LPCSTR _Format, ...)
@@ -38,7 +59,7 @@ namespace Utils
 			va_start(ArgList, _Format);
 			PrintSuccess(_Format, ArgList);
 			va_end(ArgList);
-			ChangeStdoutConsoleColors(CONSOLE_COLOR_WHITE);
+			ChangeStdoutConsoleColors(wOldConsoleColor);
 		};
 		VOID Info(LPCSTR _Format, ...)
 		{
@@ -47,7 +68,7 @@ namespace Utils
 			va_start(ArgList, _Format);
 			PrintInfo(_Format, ArgList);
 			va_end(ArgList);
-			ChangeStdoutConsoleColors(CONSOLE_COLOR_WHITE);
+			ChangeStdoutConsoleColors(wOldConsoleColor);
 		};
 		VOID Fail(LPCSTR _Format, ...)
 		{
@@ -56,7 +77,7 @@ namespace Utils
 			va_start(ArgList, _Format);
 			PrintError(_Format, ArgList);
 			va_end(ArgList);
-			ChangeStderrConsoleColors(CONSOLE_COLOR_WHITE);
+			ChangeStderrConsoleColors(wOldConsoleColor);
 		};
 	};
 
@@ -69,7 +90,7 @@ namespace Utils
 			va_start(ArgList, _Format);
 			ReportApiError(_Api, _Format, ArgList);
 			va_end(ArgList);
-			ChangeStderrConsoleColors(CONSOLE_COLOR_WHITE);
+			ChangeStderrConsoleColors(wOldConsoleColor);
 		};
 		VOID ApiNtStatus(LPCSTR _Api, NTSTATUS ntCode, LPCSTR _Format, ...)
 		{
@@ -78,7 +99,7 @@ namespace Utils
 			va_start(ArgList, _Format);
 			ReportApiNtStatus(_Api, ntCode, _Format, ArgList);
 			va_end(ArgList);
-			ChangeStderrConsoleColors(CONSOLE_COLOR_WHITE);
+			ChangeStderrConsoleColors(wOldConsoleColor);
 		};
 		VOID BadPE(LPCSTR _PE, LPCSTR _Format, ...)
 		{
@@ -87,7 +108,7 @@ namespace Utils
 			va_start(ArgList, _Format);
 			ReportBadPE(_PE, _Format, ArgList);
 			va_end(ArgList);
-			ChangeStderrConsoleColors(CONSOLE_COLOR_WHITE);
+			ChangeStderrConsoleColors(wOldConsoleColor);
 		};
 	};
 
