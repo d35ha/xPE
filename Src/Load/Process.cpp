@@ -24,13 +24,19 @@ namespace Load
 			ULONG ulWrittenSize = 0;
 			LPVOID lpIsWow64 = NULL;
 			NTSTATUS ntProcessStatus = 0;
-			if ((ntProcessStatus = NtQueryInformationProcess(
-				hProcess,
-				ProcessWow64Information,
-				&lpIsWow64,
-				sizeof(lpIsWow64),
-				&ulWrittenSize
-			)) || ulWrittenSize != sizeof(lpIsWow64))
+			if ((ntProcessStatus = (*(NTSTATUS(WINAPI*)(
+				HANDLE,
+				PROCESSINFOCLASS,
+				PVOID,
+				ULONG,
+				PULONG
+				)) _NtQueryInformationProcess)(
+					hProcess,
+					ProcessWow64Information,
+					&lpIsWow64,
+					sizeof(lpIsWow64),
+					&ulWrittenSize
+					)) || ulWrittenSize != sizeof(lpIsWow64))
 			{
 				Utils::Reportf::ApiNtStatus("NtQueryInformationProcess", ntProcessStatus,
 					"Cannot check if the process with handle 0x%x is WoW64 process", hProcess);
@@ -52,7 +58,7 @@ namespace Load
 			if ((fnGetSystemWow64DirectoryA = (LPVOID)GetProcAddress(hKernel32, "GetSystemWow64DirectoryA")))
 			{
 				CHAR WoW64Dir[1] = { 0 };
-				if ((*(UINT(*)(LPSTR, UINT)) fnGetSystemWow64DirectoryA)(
+				if ((*(UINT(WINAPI*)(LPSTR, UINT)) fnGetSystemWow64DirectoryA)(
 					WoW64Dir,
 					sizeof(WoW64Dir)
 					))
@@ -97,18 +103,26 @@ namespace Load
 			DWORD ulWrittenSize = 0;
 			BYTE bProcessBasicInfo[sizeof(PROCESS_BASIC_INFORMATION)] = { 0 };
 			NTSTATUS ntProcessStatus = 0;
-			if ((ntProcessStatus = NtQueryInformationProcess(
-				hProcess,
-				ProcessBasicInformation,
-				(PVOID)bProcessBasicInfo,
-				sizeof(PROCESS_BASIC_INFORMATION),
-				&ulWrittenSize
-			)) || ulWrittenSize != sizeof(PROCESS_BASIC_INFORMATION))
+
+			if ((ntProcessStatus = (*(NTSTATUS(WINAPI*)(
+				HANDLE,
+				PROCESSINFOCLASS,
+				PVOID,
+				ULONG,
+				PULONG
+				)) _NtQueryInformationProcess)(
+					hProcess,
+					ProcessBasicInformation,
+					(PVOID)bProcessBasicInfo,
+					sizeof(PROCESS_BASIC_INFORMATION),
+					&ulWrittenSize
+					)) || ulWrittenSize != sizeof(PROCESS_BASIC_INFORMATION))
 			{
 				Utils::Reportf::ApiNtStatus("NtQueryInformationProcess", ntProcessStatus,
 					"Cannot get the basic information of the process with handle 0x%x", hProcess);
 				return FALSE;
 			};
+				
 			PPROCESS_BASIC_INFORMATION lpProcessBasicInfo = (PPROCESS_BASIC_INFORMATION)bProcessBasicInfo;
 			*lpPebAddress = lpProcessBasicInfo->PebBaseAddress;
 
