@@ -1,3 +1,7 @@
+#ifndef _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
+#endif
+
 #include "Utils.h"
 
 #define CONSOLE_COLOR_GREEN		0xA
@@ -10,6 +14,9 @@ HANDLE StdoutConsoleHandle = NULL;
 HANDLE StderrConsoleHandle = NULL;
 LPCSTR GetLastErrorFormat(ULONG dwErrorCode = -1);
 LPCSTR GetNtStatusFormat(NTSTATUS ntCode);
+
+LPVOID _RtlNtStatusToDosError = NULL;
+LPVOID _NtQueryInformationProcess = NULL;
 
 VOID GetStdoutConsoleHandle();
 VOID GetStderrConsoleHandle();
@@ -29,14 +36,35 @@ VOID PutToStream(FILE * _Stream, LPCSTR _Format, va_list _ArgList);
 
 namespace Utils
 {
-	VOID InitColors()
+	BOOL InitUtils()
 	{
+		HMODULE hNtdll = GetModuleHandleA("ntdll.dll");
+		if (!hNtdll)
+		{
+			PrintError("Cannot get the handle of ntdll");
+			return FALSE;
+		};
+
+		_RtlNtStatusToDosError = GetProcAddress(hNtdll, "RtlNtStatusToDosError");
+		if (!_RtlNtStatusToDosError)
+		{
+			PrintError("Cannot get the address of RtlNtStatusToDosError");
+			return FALSE;
+		};
+
+		_NtQueryInformationProcess = GetProcAddress(hNtdll, "NtQueryInformationProcess");
+		if (!_NtQueryInformationProcess)
+		{
+			PrintError("Cannot get the address of NtQueryInformationProcess");
+			return FALSE;
+		};
+
 		CONSOLE_SCREEN_BUFFER_INFO ConsoleScreenBuffInfo = { 0 };
 		GetStdoutConsoleHandle();
 		if (!StdoutConsoleHandle)
 		{
 			PrintError("Error happened at getting the console stdout handle");
-			return;
+			return FALSE;
 		};
 
 		if (!GetConsoleScreenBufferInfo(
@@ -45,9 +73,10 @@ namespace Utils
 		))
 		{
 			PrintError("Error happened at getting the console old color");
-			return;
+			return FALSE;
 		};
 		wOldConsoleColor = ConsoleScreenBuffInfo.wAttributes;
+		return TRUE;
 	};
 
 	namespace Printf
@@ -213,11 +242,10 @@ namespace Utils
 			dwSourceSize < dwDestSize ? dwSourceSize : dwDestSize
 		)) return FALSE;
 
-		memcpy_s(
+		memcpy(
 			lpDest,
-			dwDestSize,
 			lpSource,
-			dwSourceSize
+			dwSourceSize < dwDestSize ? dwSourceSize : dwDestSize
 		);
 
 		return TRUE;
@@ -341,7 +369,7 @@ LPCSTR GetLastErrorFormat(ULONG dwErrorCode)
 		NULL
 	))
 	{
-		sprintf_s(ErrorMsg, "0x%lx", dwErrorCode);
+		sprintf(ErrorMsg, "0x%lx", dwErrorCode);
 	};
 	if (ErrorMsg[strlen(ErrorMsg) - 1] == '\n')
 	{
@@ -351,10 +379,10 @@ LPCSTR GetLastErrorFormat(ULONG dwErrorCode)
 };
 LPCSTR GetNtStatusFormat(NTSTATUS ntCode)
 {
-	ULONG dwErrorCode = RtlNtStatusToDosError(ntCode);
+	ULONG dwErrorCode = (*(ULONG(WINAPI*)(NTSTATUS)) _RtlNtStatusToDosError)(ntCode);
 	if (dwErrorCode == ERROR_MR_MID_NOT_FOUND)
 	{
-		sprintf_s(ErrorMsg, "0x%lx", dwErrorCode);
+		sprintf(ErrorMsg, "0x%lx", dwErrorCode);
 		return ErrorMsg;
 	};
 	return GetLastErrorFormat(dwErrorCode);
