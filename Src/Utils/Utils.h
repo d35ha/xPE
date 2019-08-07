@@ -5,14 +5,15 @@
 #ifndef UTILS_H_
 #define UTILS_H_
 
-#pragma comment (lib, "ntdll.lib")
-
 #ifdef __GNUC__
 #define offsetof(type, member)  __builtin_offsetof (type, member)
 #endif
 
 #define GET_DIRECTORY_ENTRY(lpNtHeader, dwEntry) lpNtHeader->OptionalHeader.DataDirectory[dwEntry].VirtualAddress
 #define GET_DIRECTORY_SIZE(lpNtHeader, dwEntry) lpNtHeader->OptionalHeader.DataDirectory[dwEntry].Size
+
+extern LPVOID _RtlNtStatusToDosError;
+extern LPVOID _NtQueryInformationProcess;
 
 typedef struct _RAW_FILE_INFO {
 	HANDLE hFile;
@@ -36,7 +37,7 @@ enum
 
 namespace Utils
 {
-	VOID InitColors();
+	BOOL InitUtils();
 
 	namespace Printf
 	{
